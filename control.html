@@ -238,7 +238,7 @@
 
     function comenzarRuletaKiller() {
         const mix = [...listaKillers].sort(() => 0.5 - Math.random());
-        const totalGiros = 20 + Math.floor(Math.random() * 10);
+        const totalGiros = 40 + Math.floor(Math.random() * 10);
         const secuencia = [];
         for (let i = 0; i < totalGiros; i++) {
             secuencia.push(mix[i % mix.length]);
