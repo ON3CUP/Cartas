@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Crupier de Perks - Control</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: white; display: flex; justify-content: center; gap: 20px; padding: 20px; flex-wrap: wrap; }
+        .card { background: #111; border: 1px solid #333; padding: 25px; border-radius: 12px; width: 420px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; }
+        label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; display: block; margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 5px; }
+        button { width: 100%; padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 13px; margin-bottom: 8px; transition: 0.2s; }
+        .btn-build { background: #2563eb; color: white; }
+        .btn-build:hover { background: #1d4ed8; }
+        .btn-build-survi { background: #0284c7; color: white; }
+        .btn-build-survi:hover { background: #0369a1; }
+        .btn-action { background: #10b981; color: white; }
+        .btn-action:hover { background: #059669; }
+        .btn-killer { background: #7c3aed; color: white; }
+        .btn-killer:hover { background: #6d28d9; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-danger:hover { background: #b91c1c; }
+        
+        .build-option { background: #161616; border: 1px solid #222; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .build-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .votos-badge { background: #ea580c; padding: 2px 8px; border-radius: 20px; font-size: 12px; }
+        
+        .perks-list { margin: 0; padding-left: 20px; font-size: 13px; color: #ccc; line-height: 1.6; }
+        .perks-list.oculto { color: #555; font-style: italic; list-style-type: none; padding-left: 5px; }
+        
+        .vote-controls { display: flex; gap: 8px; margin-top: 10px; }
+        .btn-vote { background: #222; border: 1px solid #444; color: white; padding: 6px; font-size: 11px; }
+        .btn-vote:hover { background: #333; }
+        
+        input[type="text"], select { width: 100%; padding: 10px; background: #161616; border: 1px solid #333; border-radius: 6px; color: white; box-sizing: border-box; margin-bottom: 10px; font-size: 13px; }
+        select { cursor: pointer; }
+        
+        #killer-monitor { background: #1a102f; border: 1px solid #4c1d95; border-radius: 8px; padding: 15px; margin-top: 15px; text-align: center; }
+        .killer-status-title { font-size: 11px; color: #a78bfa; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 5px; }
+        .killer-detected-name { font-size: 22px; font-weight: 900; color: #c084fc; text-shadow: 0 0 10px rgba(168,85,247,0.4); text-transform: uppercase; }
+        .killer-detected-name.final { color: #10b981; text-shadow: 0 0 10px rgba(16,185,129,0.4); animation: pulseGreen 1s infinite alternate; }
+
+        @keyframes pulseGreen {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.03); }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="ctrl-snd-flip" src="sounds/card-flip.mp3" preload="auto"></audio>
+    <audio id="ctrl-snd-tick" src="sounds/roulette-tick.mp3" preload="auto"></audio>
+
+    <!-- CONTROL PERKS KILLER -->
+    <div class="card">
+        <label>Control Votaciones (Perks Killer)</label>
+        <button class="btn-build" onclick="generarNuevasBuildsKiller()">1. Generar Opciones A, B, C</button>
+        <button class="btn-action" onclick="fijarGanadorVotacionKiller()">2. Declarar Ganador por Votos</button>
+        <button class="btn-action" onclick="eleccionAleatoriaKiller()">2. Elección Aleatoria</button>
+        <button class="btn-danger" onclick="limpiarTodo()">Recoger / Ocultar Todo</button>
+        
+        <div style="margin-top:20px;">
+            <div class="build-option" id="k-box-A">
+                <div class="build-title">Mazo A <span class="votos-badge" id="k-votos-badge-A">0 v</span></div>
+                <ul class="perks-list" id="k-list-A"></ul>
+                <div class="vote-controls">
+                    <button class="btn-vote" onclick="modificarVotoKiller('A', 1)">+1 Voto</button>
+                    <button class="btn-vote" onclick="modificarVotoKiller('A', -1)">-1 Voto</button>
+                </div>
+            </div>
+            <div class="build-option" id="k-box-B">
+                <div class="build-title">Mazo B <span class="votos-badge" id="k-votos-badge-B">0 v</span></div>
+                <ul class="perks-list" id="k-list-B"></ul>
+                <div class="vote-controls">
+                    <button class="btn-vote" onclick="modificarVotoKiller('B', 1)">+1 Voto</button>
+                    <button class="btn-vote" onclick="modificarVotoKiller('B', -1)">-1 Voto</button>
+                </div>
+            </div>
+            <div class="build-option" id="k-box-C">
+                <div class="build-title">Mazo C <span class="votos-badge" id="k-votos-badge-C">0 v</span></div>
+                <ul class="perks-list" id="k-list-C"></ul>
+                <div class="vote-controls">
+                    <button class="btn-vote" onclick="modificarVotoKiller('C', 1)">+1 Voto</button>
+                    <button class="btn-vote" onclick="modificarVotoKiller('C', -1)">-1 Voto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTROL PERKS SURVI -->
+    <div class="card">
+        <label>Control Votaciones (Perks Survi)</label>
+        <button class="btn-build-survi" onclick="generarNuevasBuildsSurvi()">1. Generar Opciones A, B, C</button>
+        <button class="btn-action" onclick="fijarGanadorVotacionSurvi()">2. Declarar Ganador por Votos</button>
+        <button class="btn-action" onclick="eleccionAleatoriaSurvi()">2. Elección Aleatoria</button>
+        <button class="btn-danger" onclick="limpiarTodo()">Recoger / Ocultar Todo</button>
+        
+        <div style="margin-top:20px;">
+            <div class="build-option" id="s-box-A">
+                <div class="build-title">Mazo A <span class="votos-badge" id="s-votos-badge-A">0 v</span></div>
+                <ul class="perks-list" id="s-list-A"></ul>
+                <div class="vote-controls">
+                    <button class="btn-vote" onclick="modificarVotoSurvi('A', 1)">+1 Voto</button>
+                    <button class="btn-vote" onclick="modificarVotoSurvi('A', -1)">-1 Voto</button>
+                </div>
+            </div>
+            <div class="build-option" id="s-box-B">
+                <div class="build-title">Mazo B <span class="votos-badge" id="s-votos-badge-B">0 v</span></div>
+                <ul class="perks-list" id="s-list-B"></ul>
+                <div class="vote-controls">
+                    <button class="btn-vote" onclick="modificarVotoSurvi('B', 1)">+1 Voto</button>
+                    <button class="btn-vote" onclick="modificarVotoSurvi('B', -1)">-1 Voto</button>
+                </div>
+            </div>
+            <div class="build-option" id="s-box-C">
+                <div class="build-title">Mazo C <span class="votos-badge" id="s-votos-badge-C">0 v</span></div>
+                <ul class="perks-list" id="s-list-C"></ul>
+                <div class="vote-controls">
+                    <button class="btn-vote" onclick="modificarVotoSurvi('C', 1)">+1 Voto</button>
+                    <button class="btn-vote" onclick="modificarVotoSurvi('C', -1)">-1 Voto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ASESINOS Y INTEGRACIÓN CHAT -->
+    <div class="card">
+        <label>Votación Manual de Killers</label>
+        <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px;">
+            <select id="select-killer-A"></select>
+            <select id="select-killer-B"></select>
+            <select id="select-killer-C"></select>
+        </div>
+        <button class="btn-killer" onclick="generarVotacionKillers()">1. Generar Votación de Killers</button>
+        <button class="btn-action" onclick="fijarGanadorKillerVotacion()">2. Declarar Ganador por Votos</button>
+        
+        <label style="margin-top: 15px;">Ruleta de Asesinos (Killers)</label>
+        <button class="btn-killer" onclick="comenzarRuletaKiller()">Lanzar Ruleta Aleatoria</button>
+        
+        <div id="killer-monitor">
+            <div class="killer-status-title" id="monitor-label">Estado: En espera</div>
+            <div class="killer-detected-name" id="monitor-name">---</div>
+        </div>
+
+        <label style="margin-top: 25px;">Integración de Chat (Twitch)</label>
+        <input type="text" id="twitch-channel-input" placeholder="TuCanalDeTwitch">
+        <button class="btn-action" onclick="conectarTwitchManual()">Conectar Chat de Votos</button>
+        <div id="twitch-status" style="font-size:12px; color:#888; text-align:center; margin-top:5px;">Desconectado</div>
+    </div>
+
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+<script>
+    firebase.initializeApp({databaseURL: "https://dbd-overlay-default-rtdb.firebaseio.com"});
+    const buildsKillerRef = firebase.database().ref('builds_killer_data');
+    const buildsSurviRef = firebase.database().ref('builds_survi_data');
+    const overlayModeRef = firebase.database().ref('modo_overlay');
+    const killerVoteRef = firebase.database().ref('killer_vote_data');
+
+    let localKillerData = null;
+    let localSurviData = null;
+    let localManualKillerData = null;
+    let twitchSocket = null;
+    let usuariosQueVotaron = new Set();
+
+    let currentModo = null;
+    let currentEstado = null;
+
+    const listaPerksKiller = [
+        "Acaparadora", "Acechador de ciervos", "Acecho letal", "Acogida nefasta", "Agarre del dragón", "Agitación", "Aliento", "Amigos para siempre", "Anatomía superior", "Aprendizaje de máquina", 
+        "Apretón de hierro", "Arma definitiva", "Arrogancia tenebrosa", "Avería", "Barbacoa y chile", "Bestia de presa", "Brutalidad veloz", "Carnicero chapucero", "Codicia humana", "Coulrofobia", 
+        "Depredación", "Desasosiego", "Desconcierto", "Deslumbrado", "Devoción oscura", "Discordancia", "Disolución", "Dominación", "Doncella de hierro", "Duda impuesta", "Eco sangriento", 
+        "Empleo disponible", "Enfurecimiento", "Erupción", "Esperanza destruida", "Espías de las sombras", "Fuerza brutal", "Furia ciega", "Furia espiritual", "Gancho flagelante: Brújula cerrada", 
+        "Gancho flagelante: Dolor retumbante", "Gancho flagelante: Heridas supurantes", "Gancho flagelante: Oleada de ira", "Gancho flagelante: Santuario monstruoso", "Gancho flagelante: Truco del verdugo", 
+        "Golpe de gracia", "Guardián de sangre", "Hijo de la luz", "Hijo de las sombras", "Histeria", "Implacable", "Imposición de penitencia", "Imprevisto", "Incompleto", "Influencia", 
+        "Insidia", "Instinto alienígena", "Instinto territorial", "Interruptor del hombre muerto", "Intervención corrupta", "Jugar con la comida", "Limitaciones genéticas", "Lo mejor para el final", 
+        "Luz que agoniza", "Maleficio: Control de masas", "Maleficio: Destino desdichado", "Maleficio: Devoradora de esperanza", "Maleficio: Dos pueden jugar", "Maleficio: El tercer sello", 
+        "Maleficio: Enfréntate a la oscuridad", "Maleficio: Favor de sangre", "Maleficio: Inmortal", "Maleficio: La emoción de la caza", "Maleficio: Mente colmena", "Maleficio: Nadie escapa de la muerte", 
+        "Maleficio: Nana de cazadora", "Maleficio: Obertura del mal", "Maleficio: Pentimento", "Maleficio: Represalias", "Maleficio: Ruina", "Maleficio: Solo hay miseria", "Maleficio: Tierra embrujada", 
+        "Maleficio: Títere de la fortuna", "Manitas", "Miedo fantasmal", "Mirada errante", "Monitorización y abuso", "Muerte de franklin", "Murmullo amargo", "Murmullos", "Nadie es libre", 
+        "Noqueo", "Némesis", "Opresión", "Oscuridad expuesta", "Oído para la maquinaria", "Percepción activada", "Persecución furtiva", "Pilas incluidas", "Pim, pam, pum", "Presencia abrumadora", 
+        "Presencia perturbadora", "Proyecto secreto", "Quebrantamentes", "Rastro de tormento", "Recuérdame", "Rencor", "Resistente", "Restricción cruel", "Retrasa el reloj", "Sabueso de sangre", 
+        "Salmuera", "Separación", "Sin descanso", "Sin escapatoria", "Sin escondite", "Sintonía con la urdimbre", "Soberbia", "Sobrecarga", "Sobretensión", "Soy todo oídos", "Supervisión", 
+        "Tanatofobia", "Temblores trepidantes", "Terminal", "Terror contagioso", "Todo vale", "Toma una decisión", "Toque lánguido", "Toque séptico", "Tormenta vil", "Trueno ensordecedor", 
+        "Tácticas de zanshin", "Unidos eternamente", "Veda abierta", "Vocación de enfermera", "Voraz", "Vínculo mortal", "¡Plaf!", "Maleficio: Susto de muerte", "Sombra silenciosa", "Desbocamiento"
+    ];
+
+    const listaPerksSurvi = [
+        "A mano descubierta", "Abandonado a tu suerte", "Adrenalina", "Agilidad", "Alerta", "Arrebato", "As en la manga", "Autoconservación", "Autocuración", "Autodidacta", "Bada bada bum", "Baila conmigo", "Bajo vigilancia", "Bendición: Circulo de curación", "Bendición: Exponencial", "Bendición: Iluminación", "Bendición: Paso sombrío", "Bendición: Teoría oscura", "Bulo", "Buscador", "Camaradería", "Cambio de planes", "Campeón de la luz", "Canguro", "Carga sobre los hombros", "Carne resbaladiza", "Caza menor", "Caída equilibrada", "Cinco pasos por delante", "Clarividencia", "Compañero de escena", "Con calle", "Concentración interna", "Conexión empática", "Conocimientos de botánica", "Consejo paterno", "Construcción duradera", "Contrafuerza", "Convicción", "Corazonada", "Cueste lo que cueste", "Curación reactiva", "Curtida", "De frente", "De pies ligeros", "De tripas corazón", "Deber de socorro", "Demuestra lo que vales", "Desátame", "Distorsión", "Distracción", "Dramaturgia", "Déjà vu", "El temple del hombre", "Embrujada", "Empatía", "Energía potencial", "Engaño", "Escalofríos", "Especialista", "Espejismo", "Esperanza", "Esprint", "Espíritu calmado", "Espíritu de novato", "Estado fluido", "Esto no puede estar pasando", "Estrella de la suerte", "Evaluación", "Evasión urbana", "Extraoficial", "Exultación", "Fajador", "Familia", "Farmacia", "Fecha límite", "Fijación", "Fuerza en las sombras", "Fuerza interior", "Fuga", "Giro argumental", "Golpe de suerte", "Golpe decisivo", "Granada aturdidora", "Hasta otra", "Hecho para esto", "Hiperconcentración", "Ingenio apocalíptico", "Inquebrantable", "Inspiración bárdica", "Instinto de saqueador", "Interceptor", "Invocación: Arañas tejedoras", "Invocación: Cuervos traicioneros", "Jugador secundario", "Liberación", "Ligera de pies", "Lo conseguiremos", "Lucha intensa", "Líder", "Manifestación residual", "Me la pela", "Medida correctiva", "Medidas desesperadas", "Mejor juntos", "Mejor que nuevo", "Mina explosiva", "Momento de gloria", "Nadie se queda atrás", "Neblinoso", "No hacer daño", "Notas fantasmales", "Objeto de obsesión", "Ojos de Belmont", "Oportunidades", "Pacto de sangre", "Pasión", "Percepción extrasensorial", "Percepción oscura", "Perfil bajo", "Pericia técnica", "Por los demás", "Postratamiento", "Premonición", "Primera línea", "Reafirmación", "Resiliencia", "Repuesta rápida", "Resurgimiento", "Rivalidad amistosa", "Ruptura", "Sabotear", "Salvaguarda de alma", "Segundo aliento", "Separación limpia", "Serenidad", "Sobreponerse", "Solidaridad", "Solo quedo yo", "Solucionador de problemas", "Subir las apuestas", "Sujétate", "Supresión de alianza", "Sutileza", "Te vemos", "Tenacidad", "Tiempo prestado", "Torrente de sangre", "Trabajo en equipo: Al derribo", "Trabajo en equipo: Circuito completo", "Trabajo en equipo: Curtirse", "Trabajo en equipo: Poder dual", "Trabajo en equipo: Sigilo colectivo", "Trabajo en equipo: Tono suave", "Trampa química", "Táctica veloz", "Un lugar para nosotros", "Vamos a vivir para siempre", "Velocidad silenciosa", "Vida en la carretera", "Vigilia", "Visión de futuro", "Visión estática", "Voluntad de hierro", "Vínculo", "¡Despierta!", "¡Uno, dos, tres, cuatro!", "¡Ven a por mí!", "Éxito aplastante", "Última defensa"
+    ];
+
+    const listaKillers = ["Adiestradora", "Animatronico", "Arponero", "Artista", "Bruja", "Caballero", "Canibal", "Cazadora", "Cenobita", "Cerda", "Cerebro", "Comerciante", "Demogorgon", "Desconocido", "Deterioro", "Doctor", "Draga", "Embaucador", "Enfermera", "Espectro", "Espiritu", "Ghostface", "Ghoul", "Goodguy", "Krasue", "Myers", "Legion", "Liche", "Mellizos", "Nemesis", "Oni", "Onryo", "Payaso",  "Pesadilla", "Plaga", "Primero", "Pueblerino", "Señor oscuro", "Singularidad", "Trampero", "Verdugo", "Xenomorfo", "Jason"];
+
+    function poblarSelectores() {
+        ['A', 'B', 'C'].forEach(letra => {
+            const select = document.getElementById(`select-killer-${letra}`);
+            select.innerHTML = "";
+            listaKillers.forEach((k, i) => {
+                const opt = document.createElement('option');
+                opt.value = k; opt.innerText = k;
+                if(letra === 'B' && i === 1) opt.selected = true;
+                if(letra === 'C' && i === 2) opt.selected = true;
+                select.appendChild(opt);
+            });
+        });
+    }
+    poblarSelectores();
+
+    // Listener Perks Killer
+    buildsKillerRef.on('value', (snapshot) => {
+        localKillerData = snapshot.val();
+        if (!localKillerData) {
+            document.getElementById('k-list-A').innerHTML = ''; document.getElementById('k-list-B').innerHTML = ''; document.getElementById('k-list-C').innerHTML = '';
+            document.getElementById('k-votos-badge-A').innerText = '0 v'; document.getElementById('k-votos-badge-B').innerText = '0 v'; document.getElementById('k-votos-badge-C').innerText = '0 v';
+            return;
+        }
+        if (currentModo === 'builds_killer' && localKillerData.estado === 'votando' && localKillerData.votosA === 0 && localKillerData.votosB === 0 && localKillerData.votosC === 0) {
+            usuariosQueVotaron.clear();
+        }
+        document.getElementById('k-votos-badge-A').innerText = `${localKillerData.votosA || 0} v`;
+        document.getElementById('k-votos-badge-B').innerText = `${localKillerData.votosB || 0} v`;
+        document.getElementById('k-votos-badge-C').innerText = `${localKillerData.votosC || 0} v`;
+
+        ['A', 'B', 'C'].forEach(letra => {
+            const listEl = document.getElementById(`k-list-${letra}`);
+            const lasPerks = localKillerData[`opcion${letra}`] || [];
+            if (localKillerData.estado === 'finalizado') {
+                listEl.className = "perks-list";
+                listEl.innerHTML = lasPerks.map(p => `<li>${p}</li>`).join('');
+            } else {
+                listEl.className = "perks-list oculto";
+                listEl.innerHTML = `<li>🔒 [ Perk Oculta ]</li><li>🔒 [ Perk Oculta ]</li><li>🔒 [ Perk Oculta ]</li><li>🔒 [ Perk Oculta ]</li>`;
+            }
+        });
+    });
+
+    // Listener Perks Survi
+    buildsSurviRef.on('value', (snapshot) => {
+        localSurviData = snapshot.val();
+        if (!localSurviData) {
+            document.getElementById('s-list-A').innerHTML = ''; document.getElementById('s-list-B').innerHTML = ''; document.getElementById('s-list-C').innerHTML = '';
+            document.getElementById('s-votos-badge-A').innerText = '0 v'; document.getElementById('s-votos-badge-B').innerText = '0 v'; document.getElementById('s-votos-badge-C').innerText = '0 v';
+            return;
+        }
+        if (currentModo === 'builds_survi' && localSurviData.estado === 'votando' && localSurviData.votosA === 0 && localSurviData.votosB === 0 && localSurviData.votosC === 0) {
+            usuariosQueVotaron.clear();
+        }
+        document.getElementById('s-votos-badge-A').innerText = `${localSurviData.votosA || 0} v`;
+        document.getElementById('s-votos-badge-B').innerText = `${localSurviData.votosB || 0} v`;
+        document.getElementById('s-votos-badge-C').innerText = `${localSurviData.votosC || 0} v`;
+
+        ['A', 'B', 'C'].forEach(letra => {
+            const listEl = document.getElementById(`s-list-${letra}`);
+            const lasPerks = localSurviData[`opcion${letra}`] || [];
+            if (localSurviData.estado === 'finalizado') {
+                listEl.className = "perks-list";
+                listEl.innerHTML = lasPerks.map(p => `<li>${p}</li>`).join('');
+            } else {
+                listEl.className = "perks-list oculto";
+                listEl.innerHTML = `<li>🔒 [ Perk Oculta ]</li><li>🔒 [ Perk Oculta ]</li><li>🔒 [ Perk Oculta ]</li><li>🔒 [ Perk Oculta ]</li>`;
+            }
+        });
+    });
+
+    killerVoteRef.on('value', (snapshot) => {
+        localManualKillerData = snapshot.val();
+        if (localManualKillerData && localManualKillerData.votosA === 0 && localManualKillerData.votosB === 0 && localManualKillerData.votosC === 0) {
+            usuariosQueVotaron.clear();
+        }
+    });
+
+    overlayModeRef.on('value', (snapshot) => {
+        const modeData = snapshot.val();
+        const lbl = document.getElementById('monitor-label');
+        const nameEl = document.getElementById('monitor-name');
+
+        if (!modeData) {
+            currentModo = null; currentEstado = null;
+            lbl.innerText = "Estado: En espera / Inactivo"; nameEl.innerText = "---";
+            nameEl.className = "killer-detected-name";
+            usuariosQueVotaron.clear(); return;
+        }
+
+        currentModo = modeData.modo;
+        currentEstado = modeData.estado;
+
+        if (modeData.modo === 'killer_vote') {
+            if (modeData.estado === 'votando') {
+                lbl.innerText = "🗳️ Votación Activa de Killers"; nameEl.innerText = "ESPERANDO VOTOS";
+                nameEl.className = "killer-detected-name";
+            } else if (modeData.estado === 'finalizado') {
+                lbl.innerText = "🎉 ¡KILLER GANADOR POR VOTOS!"; nameEl.innerText = modeData.ganadorNombre || "---";
+                nameEl.className = "killer-detected-name final";
+            }
+            return;
+        }
+
+        if (modeData.modo === 'builds_killer') {
+            lbl.innerText = modeData.estado === 'votando' ? "🗳️ Votando Perks de Killer" : "🎉 Perks Killer Listas";
+            nameEl.innerText = modeData.estado === 'votando' ? "MAZOS EN CHAT" : "REVELANDO EN STREAM";
+            nameEl.className = modeData.estado === 'finalizado' ? "killer-detected-name final" : "killer-detected-name";
+            return;
+        }
+
+        if (modeData.modo === 'builds_survi') {
+            lbl.innerText = modeData.estado === 'votando' ? "🗳️ Votando Perks de Survi" : "🎉 Perks Survi Listas";
+            nameEl.innerText = modeData.estado === 'votando' ? "MAZOS EN CHAT" : "REVELANDO EN STREAM";
+            nameEl.className = modeData.estado === 'finalizado' ? "killer-detected-name final" : "killer-detected-name";
+            return;
+        }
+
+        if (modeData.modo !== 'killer') {
+            lbl.innerText = "Estado: En espera / Inactivo"; nameEl.innerText = "---";
+            nameEl.className = "killer-detected-name"; return;
+        }
+
+        if (modeData.secuencia && typeof modeData.indiceActual === 'number') {
+            const killerActual = modeData.secuencia[modeData.indiceActual];
+            if (modeData.estado === 'girando') {
+                lbl.innerText = "⚡ Ruleta Girando..."; nameEl.innerText = killerActual;
+                nameEl.className = "killer-detected-name";
+            } else if (modeData.estado === 'finalizado') {
+                lbl.innerText = "🎉 ¡KILLER SELECCIONADO GANADOR!"; nameEl.innerText = killerActual;
+                nameEl.className = "killer-detected-name final";
+            }
+        }
+    });
+
+    // Modificaciones Atómicas de Votos
+    function modificarVotoKiller(o, c) {
+        buildsKillerRef.child(`votos${o}`).transaction((cv) => { let v = (cv || 0) + c; return v < 0 ? 0 : v; });
+    }
+    function modificarVotoSurvi(o, c) {
+        buildsSurviRef.child(`votos${o}`).transaction((cv) => { let v = (cv || 0) + c; return v < 0 ? 0 : v; });
+    }
+    function modificarVotoManualKiller(o, c) {
+        killerVoteRef.child(`votos${o}`).transaction((cv) => { let v = (cv || 0) + c; return v < 0 ? 0 : v; });
+    }
+
+    // Funciones de Lógica Killer Perks
+    function generarNuevasBuildsKiller() {
+        usuariosQueVotaron.clear();
+        buildsSurviRef.set(null); killerVoteRef.set(null);
+        const shuf = () => [...listaPerksKiller].sort(() => 0.5 - Math.random()).slice(0, 4);
+        buildsKillerRef.set({
+            opcionA: shuf(), opcionB: shuf(), opcionC: shuf(),
+            votosA: 0, votosB: 0, votosC: 0, ganadora: "", estado: "votando"
+        }).then(() => { overlayModeRef.set({ modo: 'builds_killer', estado: 'votando' }); });
+    }
+    function eleccionAleatoriaKiller() {
+        if (!localKillerData) return;
+        overlayModeRef.update({ modo: 'builds_killer', estado: 'finalizado' });
+        buildsKillerRef.update({ ganadora: ['A', 'B', 'C'][Math.floor(Math.random() * 3)], estado: "finalizado" });
+    }
+    function fijarGanadorVotacionKiller() {
+        if (!localKillerData) return;
+        overlayModeRef.update({ modo: 'builds_killer', estado: 'finalizado' });
+        const v = [localKillerData.votosA || 0, localKillerData.votosB || 0, localKillerData.votosC || 0];
+        buildsKillerRef.update({ ganadora: ['A', 'B', 'C'][v.indexOf(Math.max(...v))], estado: "finalizado" });
+    }
+
+    // Funciones de Lógica Survi Perks
+    function generarNuevasBuildsSurvi() {
+        usuariosQueVotaron.clear();
+        buildsKillerRef.set(null); killerVoteRef.set(null);
+        const shuf = () => [...listaPerksSurvi].sort(() => 0.5 - Math.random()).slice(0, 4);
+        buildsSurviRef.set({
+            opcionA: shuf(), opcionB: shuf(), opcionC: shuf(),
+            votosA: 0, votosB: 0, votosC: 0, ganadora: "", estado: "votando"
+        }).then(() => { overlayModeRef.set({ modo: 'builds_survi', estado: 'votando' }); });
+    }
+    function eleccionAleatoriaSurvi() {
+        if (!localSurviData) return;
+        overlayModeRef.update({ modo: 'builds_survi', estado: 'finalizado' });
+        buildsSurviRef.update({ ganadora: ['A', 'B', 'C'][Math.floor(Math.random() * 3)], estado: "finalizado" });
+    }
+    function fijarGanadorVotacionSurvi() {
+        if (!localSurviData) return;
+        overlayModeRef.update({ modo: 'builds_survi', estado: 'finalizado' });
+        const v = [localSurviData.votosA || 0, localSurviData.votosB || 0, localSurviData.votosC || 0];
+        buildsSurviRef.update({ ganadora: ['A', 'B', 'C'][v.indexOf(Math.max(...v))], estado: "finalizado" });
+    }
+
+    // Votaciones e integración Manual Killers
+    function generarVotacionKillers() {
+        usuariosQueVotaron.clear(); buildsKillerRef.set(null); buildsSurviRef.set(null);
+        const kA = document.getElementById('select-killer-A').value;
+        const kB = document.getElementById('select-killer-B').value;
+        const kC = document.getElementById('select-killer-C').value;
+        killerVoteRef.set({ killerA: kA, killerB: kB, killerC: kC, votosA: 0, votosB: 0, votosC: 0 })
+        .then(() => { overlayModeRef.set({ modo: 'killer_vote', estado: 'votando' }); });
+    }
+    function fijarGanadorKillerVotacion() {
+        if (!localManualKillerData) return;
+        const v = [localManualKillerData.votosA || 0, localManualKillerData.votosB || 0, localManualKillerData.votosC || 0];
+        const letras = ['A', 'B', 'C']; const ganadora = letras[v.indexOf(Math.max(...v))];
+        overlayModeRef.set({ modo: 'killer_vote', estado: 'finalizado', ganadora: ganadora, ganadorNombre: localManualKillerData[`killer${ganadora}`] });
+    }
+    function comenzarRuletaKiller() {
+        usuariosQueVotaron.clear(); killerVoteRef.set(null); buildsKillerRef.set(null); buildsSurviRef.set(null);
+        const mix = [...listaKillers].sort(() => 0.5 - Math.random());
+        const totalGiros = 40 + Math.floor(Math.random() * 10);
+        const secuencia = [];
+        for (let i = 0; i < totalGiros; i++) { secuencia.push(mix[i % mix.length]); }
+        let idx = 0; overlayModeRef.set({ modo: 'killer', estado: 'girando', secuencia: secuencia, indiceActual: idx });
+        const interval = setInterval(() => {
+            idx++;
+            if (idx < secuencia.length - 1) { overlayModeRef.update({ indiceActual: idx }); } 
+            else { clearInterval(interval); overlayModeRef.update({ estado: 'finalizado', indiceActual: secuencia.length - 1 }); }
+        }, 150);
+    }
+
+    function limpiarTodo() {
+        usuariosQueVotaron.clear(); buildsKillerRef.set(null); buildsSurviRef.set(null); killerVoteRef.set(null); overlayModeRef.set(null);
+    }
+
+    // Conexión Chat Twitch Inteligente
+    function conectarTwitchManual() { const canal = document.getElementById('twitch-channel-input').value.trim().toLowerCase(); ejecutarConexionTwitch(canal); }
+    function ejecutarConexionTwitch(canal) {
+        if (!canal) return;
+        if (twitchSocket) { try { twitchSocket.close(); } catch(e){} }
+        const statusEl = document.getElementById('twitch-status');
+        statusEl.innerText = "Conectando..."; statusEl.style.color = "#eab308"; 
+        twitchSocket = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+        twitchSocket.onopen = () => {
+            twitchSocket.send('PASS oauth:111111111111111111111111111111');
+            twitchSocket.send('NICK justinfan84729'); twitchSocket.send(`JOIN #${canal}`);
+        };
+        twitchSocket.onmessage = (event) => {
+            const msgRaw = event.data;
+            if (msgRaw.startsWith('PING')) { twitchSocket.send('PONG :tmi.twitch.tv'); return; }
+            if (msgRaw.includes(':tmi.twitch.tv 366') || msgRaw.includes('JOIN')) { statusEl.innerText = `Conectado a: ${canal}`; statusEl.style.color = "#10b981"; return; }
+            const match = msgRaw.match(/:([^!]+)![^@]+@[^ ]+ PRIVMSG #[^ ]+ :(.+)/);
+            if (match) {
+                const usuario = match[1].toLowerCase(); const textoChat = match[2].trim().toUpperCase();
+                if (['A', 'B', 'C'].includes(textoChat)) {
+                    if (!currentModo || currentEstado !== 'votando') return;
+                    if (usuariosQueVotaron.has(usuario)) return;
+                    
+                    usuariosQueVotaron.add(usuario);
+                    if (currentModo === 'builds_killer') { modificarVotoKiller(textoChat, 1); } 
+                    else if (currentModo === 'builds_survi') { modificarVotoSurvi(textoChat, 1); } 
+                    else if (currentModo === 'killer_vote') { modificarVotoManualKiller(textoChat, 1); }
+                }
+            }
+        };
+        twitchSocket.onerror = () => { statusEl.innerText = "Error de red"; statusEl.style.color = "#dc2626"; };
+        twitchSocket.onclose = () => { if (statusEl.innerText === "Conectando...") { statusEl.innerText = "Desconectado"; statusEl.style.color = "#888"; } };
+    }
+</script>
+</body>
+</html>
