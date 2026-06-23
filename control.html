@@ -405,7 +405,7 @@
             idx++;
             if (idx < secuencia.length - 1) { overlayModeRef.update({ indiceActual: idx }); } 
             else { clearInterval(interval); overlayModeRef.update({ estado: 'finalizado', indiceActual: secuencia.length - 1 }); }
-        }, 90);
+        }, 50);
     }
 
     function limpiarTodo() {
