@@ -120,6 +120,7 @@
         <!-- CONTROL PERKS SURVI -->
         <div class="card" id="card-survi">
             <label>Control Votaciones (Perks Survi)</label>
+            <button id="btn-perk-fija" class="btn-vote" style="margin-bottom: 10px; padding: 10px; font-weight: bold; width: 100%; border-radius: 6px;" onclick="toggleModoPerkFija()">🎯 Perk Fija: OFF</button>
             <button class="btn-build-survi" onclick="generarNuevasBuildsSurvi()">1. Generar Opciones A, B, C</button>
             <button class="btn-action" onclick="fijarGanadorVotacionSurvi()">2. Declarar Ganador por Votos</button>
             <button class="btn-action" onclick="eleccionAleatoriaSurvi()">2. Elección Aleatoria</button>
@@ -187,6 +188,25 @@
     const overlayModeRef = firebase.database().ref('modo_overlay');
     const killerVoteRef = firebase.database().ref('killer_vote_data');
 
+    // --- CONFIGURACIÓN DE PERK FIJA PARA SURVI ---
+    // Cambia el nombre entre comillas por el de la perk exacta que quieras que salga sí o sí:
+    const perkFijaSurvi = "Me la pela";
+    let modoPerkFijaActivo = false;
+
+    function toggleModoPerkFija() {
+        modoPerkFijaActivo = !modoPerkFijaActivo;
+        const btn = document.getElementById('btn-perk-fija');
+        if (modoPerkFijaActivo) {
+            btn.innerText = `🎯 Perk Fija: ON (${perkFijaSurvi})`;
+            btn.style.background = "#0284c7";
+            btn.style.borderColor = "#38bdf8";
+        } else {
+            btn.innerText = "🎯 Perk Fija: OFF";
+            btn.style.background = "#222";
+            btn.style.borderColor = "#444";
+        }
+    }
+
     let localKillerData = null;
     let localSurviData = null;
     let localManualKillerData = null;
@@ -222,15 +242,13 @@
     }
 
     // --- CONFIGURACIÓN DE MULTIPLICADORES INDIVIDUALES ---
-    // Coloca el nombre EXACTO de la perk y el número por el cual deseas multiplicar su probabilidad.
-    // Si una perk no aparece aquí, automáticamente tendrá un multiplicador por defecto de 1.
     const multiplicadoresPerks = {
         // Ejemplos Killer
-        "Barbacoa y chile": 5,        // 5 veces más probabilidad
-        "Intervención corrupta": 4,   // 4 veces más probabilidad
-        "Pim, pam, pum": 3,           // 3 veces más probabilidad
-        "Acecho letal": 2,            // 2 veces más probabilidad
-        "Hijo de la luz": 0.5,        // Mitad de probabilidad (sale menos)
+        "Barbacoa y chile": 5,
+        "Intervención corrupta": 4,
+        "Pim, pam, pum": 3,
+        "Acecho letal": 2,
+        "Hijo de la luz": 0.5,
 
         // Ejemplos Survi
         "Me la pela": 0.5,
@@ -259,7 +277,6 @@
         "Última defensa":10,          
     };
 
-    // Función de selección ponderada ajustada a multiplicadores individuales
     function obtenerMazoConVIP(listaBase, cantidad = 4) {
         let pool = [...listaBase];
         let seleccionadas = [];
@@ -287,6 +304,12 @@
             }
         }
         return seleccionadas;
+    }
+
+    function obtenerMazoConPerkFija(poolSinFija, perkFija) {
+        const restantes = obtenerMazoConVIP(poolSinFija, 3);
+        const mazoCompleto = [...restantes, perkFija];
+        return mazoCompleto.sort(() => 0.5 - Math.random());
     }
 
     const listaPerksKiller = [
@@ -487,9 +510,24 @@
     function generarNuevasBuildsSurvi() {
         usuariosQueVotaron.clear();
         buildsKillerRef.set(null); killerVoteRef.set(null);
-        const shuf = () => obtenerMazoConVIP(listaPerksSurvi, 4);
+
+        let mazoA, mazoB, mazoC;
+
+        if (modoPerkFijaActivo && perkFijaSurvi) {
+            const mazoElegido = Math.floor(Math.random() * 3);
+            const poolSinFija = listaPerksSurvi.filter(p => p !== perkFijaSurvi);
+
+            mazoA = mazoElegido === 0 ? obtenerMazoConPerkFija(poolSinFija, perkFijaSurvi) : obtenerMazoConVIP(poolSinFija, 4);
+            mazoB = mazoElegido === 1 ? obtenerMazoConPerkFija(poolSinFija, perkFijaSurvi) : obtenerMazoConVIP(poolSinFija, 4);
+            mazoC = mazoElegido === 2 ? obtenerMazoConPerkFija(poolSinFija, perkFijaSurvi) : obtenerMazoConVIP(poolSinFija, 4);
+        } else {
+            mazoA = obtenerMazoConVIP(listaPerksSurvi, 4);
+            mazoB = obtenerMazoConVIP(listaPerksSurvi, 4);
+            mazoC = obtenerMazoConVIP(listaPerksSurvi, 4);
+        }
+
         buildsSurviRef.set({
-            opcionA: shuf(), opcionB: shuf(), opcionC: shuf(),
+            opcionA: mazoA, opcionB: mazoB, opcionC: mazoC,
             votosA: 0, votosB: 0, votosC: 0, ganadora: "", estado: "votando"
         }).then(() => { overlayModeRef.set({ modo: 'builds_survi', estado: 'votando' }); });
     }
